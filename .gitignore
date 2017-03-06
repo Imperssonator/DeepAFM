@@ -1,0 +1,6 @@
+#block some stuff
+Data/**
+Figures/**
+Nearest Neighbors/**
+PC Spectra/**
+*.mat
