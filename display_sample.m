@@ -16,11 +16,11 @@ for ch = 1:n_im
     subplot(n_im,2,ch*2-1), imshow(img_flat)
     subplot(n_im,2,ch*2), imshow(img_edge)
     
-    eta=SI_Moment(img_edge);
-    inv_moments = Hu_Moments(eta);
-    ims(ch).Hu = inv_moments;
+%     eta=SI_Moment(img_edge);
+%     inv_moments = Hu_Moments(eta);
+%     ims(ch).Hu = inv_moments;
 end
 
-disp(ims(1).Hu(1:2))
+% disp(ims(1).Hu(1:2))
 
 end

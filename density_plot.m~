@@ -1,0 +1,13 @@
+num_gauss=30;
+
+gray=rgb2gray(im);
+g3 = zeros(size(gray,1),size(gray,2),num_gauss);
+for i = 1:num_gauss;
+g3(:,:,i)=imgaussian(double(gray),2*i);
+end
+i=200;j=20;
+gg=g3(i,j,:); gg=gg(:);
+figure; plot(gg)
+ax=gca;
+ax.XScale='log'
+ax.YScale='log';
