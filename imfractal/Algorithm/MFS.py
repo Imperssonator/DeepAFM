@@ -44,27 +44,30 @@ class MFS (Algorithm):
     def __init__(self):
         pass
 
-    def setDef(self,ind,f,ite):
+    def setDef(self,max_sig,f,ite,ind=6):
 
         # parameters: ind -> determines how many levels are used when computing the density 
         #                          choose 1 for using  directly the image measurement im or
         #                          >= 6 for computing the density of im (quite stable for >=5)      
         #              f ----> determines the dimension of  MFS vector
         #              ite  ---> determines how many levels are used when computing MFS for each 
+        #              max_sig ---> maximum value of sigma to use in gaussian filter sweep
 
         self.ind_num = ind      # number of pixels for averaging
         self.f_num = f          # window
-        self.ite_num = ite 
+        self.ite_num = ite
+        self.max_sig = max_sig
 
 
 
-    def gauss_kern(self,size, sizey):
+    def gauss_kern(self,sigma,size=15):
         """ Returns a normalized 2D gauss kernel array for convolutions """
+        # I changed it so that the underlying 2d gaussian function has a sigma equal to 'sigma'
+        # And the size of the filter window is just 'size', which is fixed at 15 by default, because
+        # convolution is so fast that why would I use a smaller window?
+        
         m = np.float32(size)
-        n = np.float32(sizey)
-        sigma = 2;     # ???
-        if(size <= 3): sigma = 1.5;
-        if(size == 5): sigma = 2.5;
+        n = np.float32(size)
         y, x = np.mgrid[-(m-1)/2:(m-1)/2+1, -(n-1)/2:(n-1)/2+1]
 
         b = 2*(sigma**2)
@@ -107,8 +110,8 @@ class MFS (Algorithm):
         #######################
 
         ### Estimating density function of the image
-        ### by solving least squares for D in  the equation  
-        ### log10(bw) = D*log10(c) + b 
+        ### by solving least squares for D in the equation  
+        ### log10(bw) = D*log10(c) + b
         r = 1.0/max(im.shape)
         c = np.dot(range(1,self.ind_num+1),r)
 
@@ -116,19 +119,37 @@ class MFS (Algorithm):
         bw = np.zeros((self.ind_num,im.shape[0],im.shape[1])).astype(np.float32)
 
         bw[0] = im + 1
-
+        
         k = 1
+        sigma_vec=np.linspace(0.5,self.max_sig,self.ind_num-1)
         if(self.ind_num > 1):
-            bw[1] = scipy.signal.convolve2d(bw[0], self.gauss_kern(k+1,(k+1)),mode="full")[1:,1:]*((k+1)**2)
+            # Here he was multiplying the result of the gaussian filter by the area of the filter, k*k...
+            # I thought that was ridiculous, but since the density function is apparently a gaussian filter
+            # followed by a sum over an area the same size as the gaussian filter, I just added a convolution
+            # with a matrix of ones, which is the same as an area sum
+            temp = scipy.signal.convolve2d(bw[0],
+                                           self.gauss_kern(sigma_vec[k-1]),
+                                           mode="same")
+            temp = scipy.signal.convolve2d(temp,
+                                           np.ones((k,k)),
+                                           mode="same")
+            bw[1] = temp
 
         for k in range(2,self.ind_num):
-            temp = scipy.signal.convolve2d(bw[0], self.gauss_kern(k+1,(k+1)),mode="full")*((k+1)**2)
-            if(k==4):
-                bw[k] = temp[k-1-1:temp.shape[0]-(k/2),k-1-1:temp.shape[1]-(k/2)]            
-            else:
-                bw[k] = temp[k-1:temp.shape[0]-(1),k-1:temp.shape[1]-(1)]
+            temp = scipy.signal.convolve2d(bw[0],
+                                           self.gauss_kern(sigma_vec[k-1]),
+                                           mode="same")
+            temp = scipy.signal.convolve2d(temp,
+                                           np.ones((k,k)),
+                                           mode="same")
+            bw[k] = temp
 
 
+        
+        # I'm pretty sure that this is where he does the "regression", but he
+        # basically hard-coded the matrix algebra to do that part, which is smart
+        # but also COMPLETELY UNREADABLE
+        
         bw = np.log10(bw)
         n1 = c[0]*c[0]
         n2 = bw[0]*c[0]
@@ -145,7 +166,7 @@ class MFS (Algorithm):
             D = (n2*self.ind_num-sum(c)*sum3)/(n1*self.ind_num -sum(c)*sum(c));
 
         if (self.ind_num > 1):
-            max_D  = np.float32(4)
+            max_D  = np.float32(5)
             min_D = np.float32(1)
             D = grayscale_box[1]*(D-min_D)/(max_D - min_D)+grayscale_box[0]
         else:
