@@ -127,20 +127,20 @@ class MFS (Algorithm):
             # I thought that was ridiculous, but since the density function is apparently a gaussian filter
             # followed by a sum over an area the same size as the gaussian filter, I just added a convolution
             # with a matrix of ones, which is the same as an area sum
-            temp = scipy.signal.convolve2d(bw[0],
-                                           self.gauss_kern(sigma_vec[k-1]),
-                                           mode="same")
-            temp = scipy.signal.convolve2d(temp,
-                                           np.ones((k,k)),
+            #temp = scipy.signal.convolve2d(bw[0],
+            #                               self.gauss_kern(sigma_vec[k-1]),
+            #                               mode="same")
+            temp = scipy.signal.convolve2d(bw[0], #temp,
+                                           np.ones((k+1,k+1)),
                                            mode="same")
             bw[1] = temp
 
         for k in range(2,self.ind_num):
-            temp = scipy.signal.convolve2d(bw[0],
-                                           self.gauss_kern(sigma_vec[k-1]),
-                                           mode="same")
-            temp = scipy.signal.convolve2d(temp,
-                                           np.ones((k,k)),
+            #temp = scipy.signal.convolve2d(bw[0],
+            #                               self.gauss_kern(sigma_vec[k-1]),
+            #                               mode="same")
+            temp = scipy.signal.convolve2d(bw[0], #temp,
+                                           np.ones((k+1,k+1)),
                                            mode="same")
             bw[k] = temp
 
@@ -166,7 +166,7 @@ class MFS (Algorithm):
             D = (n2*self.ind_num-sum(c)*sum3)/(n1*self.ind_num -sum(c)*sum(c));
 
         if (self.ind_num > 1):
-            max_D  = np.float32(5)
+            max_D  = np.float32(3.5)
             min_D = np.float32(1)
             D = grayscale_box[1]*(D-min_D)/(max_D - min_D)+grayscale_box[0]
         else:
